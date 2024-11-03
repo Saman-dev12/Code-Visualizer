@@ -1,0 +1,4 @@
+node_modules
+bar
+.env.local
+.env
