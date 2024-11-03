@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import Editor from "@monaco-editor/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ModeToggle } from "@/components/ui/theme-button";
 
 const CodeVisualizer = () => {
   const [code, setCode] = useState<string | undefined>(
@@ -51,7 +52,7 @@ const CodeVisualizer = () => {
               onChange={(e) => {
                 handleEditorChange(e);
               }}
-              theme="vs-ligh"
+              theme="vs-dark"
               options={{
                 minimap: { enabled: false },
                 fontSize: 16,
@@ -76,6 +77,7 @@ const CodeVisualizer = () => {
               >
                 Next Step
               </Button>
+              <ModeToggle />
             </div>
           </CardContent>
         </Card>
@@ -88,13 +90,13 @@ const CodeVisualizer = () => {
             <div className="space-y-4">
               <div className="border rounded p-4">
                 <h3 className="font-semibold mb-2">Variables</h3>
-                <pre className="bg-gray-100 p-2 rounded">
+                <pre className="bg-gray-100 p-2 rounded text-black">
                   {JSON.stringify(variables, null, 2)}
                 </pre>
               </div>
               <div className="border rounded p-4">
                 <h3 className="font-semibold mb-2">Output</h3>
-                <pre className="bg-gray-100 p-2 rounded">
+                <pre className="bg-gray-100 p-2 rounded text-black">
                   {output.slice(0, currentStep + 1).join("\n")}
                 </pre>
               </div>
