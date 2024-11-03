@@ -4,6 +4,13 @@ import Editor from "@monaco-editor/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/ui/theme-button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const CodeVisualizer = () => {
   const [code, setCode] = useState<string | undefined>(
@@ -13,6 +20,7 @@ const CodeVisualizer = () => {
   const [variables, setVariables] = useState({});
   const [output, setOutput] = useState([]);
   const [isRunning, setIsRunning] = useState(false);
+  const [currentLanguage, setCurrentLanguage] = useState("java");
 
   const handleEditorChange = (value: string | undefined) => {
     setCode(value);
@@ -42,7 +50,25 @@ const CodeVisualizer = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="h-[600px]">
           <CardHeader>
-            <CardTitle>Code Editor</CardTitle>
+            <div className="flex items-center justify-between border-b pb-2">
+              <CardTitle className="text-xl font-normal">Code Editor</CardTitle>
+              <div className="flex items-center justify-center">
+                <Select
+                  value={currentLanguage}
+                  onValueChange={(value) => setCurrentLanguage(value)}
+                >
+                  <SelectTrigger className="w-28">
+                    <SelectValue placeholder="Select a language" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cpp">C++</SelectItem>
+                    <SelectItem value="java">Java</SelectItem>
+                    <SelectItem value="javascript">JavaScript</SelectItem>
+                    <SelectItem value="python">Python</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <Editor
