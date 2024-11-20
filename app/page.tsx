@@ -1,49 +1,84 @@
 "use client";
 import React, { useState } from "react";
+import axios from "axios";
 import Editor from "@monaco-editor/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { ExecutionState } from "@/types/execution";
 import { ModeToggle } from "@/components/ui/theme-button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
-const CodeVisualizer = () => {
-  const [code, setCode] = useState<string | undefined>(
-    '# Enter your Python code here\nprint("Hello, World!")\nx = 5\ny = 10\nresult = x + y\nprint(result)'
-  );
-  const [currentStep, setCurrentStep] = useState(0);
-  const [variables, setVariables] = useState({});
-  const [output, setOutput] = useState([]);
-  const [isRunning, setIsRunning] = useState(false);
-  const [currentLanguage, setCurrentLanguage] = useState("java");
+interface CodeVisualizerProps {
+  initialCode?: string;
+}
+
+const CodeVisualizer: React.FC<CodeVisualizerProps> = ({
+  initialCode = `public class Main {
+    public static void main(String[] args) {
+        int x = 5;
+        int y = 10;
+        int result = x + y;
+        System.out.println(result);
+    }
+}`,
+}) => {
+  const [code, setCode] = useState<string>(initialCode);
+  const [executionState, setExecutionState] = useState<ExecutionState>({
+    steps: [],
+    currentStep: 0,
+    totalSteps: 0,
+    status: "idle",
+  });
+  const [isRunning, setIsRunning] = useState<boolean>(false);
 
   const handleEditorChange = (value: string | undefined) => {
-    setCode(value);
+    if (value) {
+      setCode(value);
+    }
   };
 
   const runCode = async () => {
     setIsRunning(true);
     try {
-      const response = await fetch("/api/execute", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ code }),
+      const response = await axios.post<ExecutionState>("/api/execute/java", {
+        code,
       });
-      const data = await response.json();
-      setVariables(data.variables);
-      setOutput(data.output);
+
+      console.log(response.data);
+
+      setExecutionState({
+        ...response.data,
+        status: "completed",
+        currentStep: 0,
+      });
+
+      toast.success("Code executed successfully!");
     } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const errorMessage =
+          error.response?.data?.error || "Failed to execute code";
+        toast.error(errorMessage);
+      } else {
+        toast.error("An unexpected error occurred");
+      }
       console.error("Error executing code:", error);
+    } finally {
+      setIsRunning(false);
     }
-    setIsRunning(false);
   };
+
+  const handleStepChange = (direction: "next" | "prev") => {
+    setExecutionState((prev) => ({
+      ...prev,
+      currentStep:
+        direction === "next"
+          ? Math.min(prev.currentStep + 1, prev.totalSteps - 1)
+          : Math.max(prev.currentStep - 1, 0),
+    }));
+  };
+
+  const currentStep = executionState.steps[executionState.currentStep];
 
   return (
     <div className="container mx-auto p-4">
@@ -51,87 +86,40 @@ const CodeVisualizer = () => {
         <Card className="h-[600px]">
           <CardHeader>
             <div className="flex items-center justify-between border-b pb-2">
-              <CardTitle className="text-xl font-normal">Code Editor</CardTitle>
-              <div className="flex items-center justify-center">
-                <Select
-                  value={currentLanguage}
-                  onValueChange={(value) => setCurrentLanguage(value)}
-                >
-                  <SelectTrigger className="w-28">
-                    <SelectValue placeholder="Select a language" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cpp">C++</SelectItem>
-                    <SelectItem value="java">Java</SelectItem>
-                    <SelectItem value="javascript">JavaScript</SelectItem>
-                    <SelectItem value="python">Python</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <CardTitle className="text-xl font-normal">Java Editor</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
             <Editor
               height="400px"
-              defaultLanguage="python"
+              defaultLanguage="java"
               value={code}
-              onChange={(e) => {
-                handleEditorChange(e);
-              }}
+              onChange={handleEditorChange}
               theme="vs-dark"
-              options={{
-                autoClosingBrackets:"always",
-              autoClosingQuotes:"always",
-              autoIndent:"full",
-              formatOnPaste:true,
-              formatOnType:true,
-              colorDecorators:true,
-              folding:true,
-              showFoldingControls:"always",
-              disableLayerHinting:true,
-              overviewRulerBorder:false,
-              overviewRulerLanes:0,
-              hideCursorInOverviewRuler:true,
-              scrollBeyondLastColumn:0,
-              selectionHighlight:false,
-              renderLineHighlight:"none",
-              useTabStops:false,
-              matchBrackets:"never",
-              snippetSuggestions:"inline",
-              cursorWidth:2,
-              renderWhitespace:"none",
-              cursorBlinking:"smooth",
-              cursorStyle:"block",
-              quickSuggestionsDelay:100,
-              quickSuggestions:true,
-              cursorSmoothCaretAnimation:"on",
-              minimap: { enabled: false },
-              fontSize: 16,
-              wordWrap: 'on',
-              scrollBeyondLastLine: false,
-              automaticLayout: true,
-              tabSize: 2,
-              lineNumbers: 'on',
-              lineNumbersMinChars: 2,
-              lineDecorationsWidth: 0,
-              }}
-              className="border rounded-lg overflow-hidden"
+              
             />
             <div className="mt-4 flex gap-2">
-              <Button onClick={runCode} disabled={isRunning}>
-                {isRunning ? "Running..." : "Run Code"}
+              <Button onClick={runCode} disabled={isRunning} className="w-24">
+                {isRunning ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  "Run Code"
+                )}
               </Button>
               <Button
                 variant="outline"
-                onClick={() => setCurrentStep((prev) => Math.max(0, prev - 1))}
-                disabled={currentStep === 0}
+                onClick={() => handleStepChange("prev")}
+                disabled={executionState.currentStep === 0 || isRunning}
               >
                 Previous Step
               </Button>
               <Button
                 variant="outline"
-                onClick={() => setCurrentStep((prev) => prev + 1)}
-                disabled={currentStep === output.length}
+                onClick={() => handleStepChange("next")}
+                disabled={
+                  executionState.currentStep ===
+                    executionState.totalSteps - 1 || isRunning
+                }
               >
                 Next Step
               </Button>
@@ -142,21 +130,50 @@ const CodeVisualizer = () => {
 
         <Card className="h-[600px]">
           <CardHeader>
-            <CardTitle>Visualization</CardTitle>
+            <CardTitle>Execution Visualization</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="border rounded p-4">
                 <h3 className="font-semibold mb-2">Variables</h3>
-                <pre className="bg-gray-100 p-2 rounded text-black">
-                  {JSON.stringify(variables, null, 2)}
-                </pre>
+                {currentStep?.variables.length > 0 ? (
+                  <div className="bg-gray-100 p-2 rounded overflow-auto max-h-[200px]">
+                    {currentStep.variables.map((variable) => (
+                      <div key={variable.name} className="mb-1">
+                        <span className="font-mono text-blue-600">
+                          {variable.type} {variable.name}:
+                        </span>
+                        <span className="font-mono ml-2">
+                          {JSON.stringify(variable.value)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 italic">
+                    No variables to display
+                  </p>
+                )}
               </div>
+
               <div className="border rounded p-4">
                 <h3 className="font-semibold mb-2">Output</h3>
-                <pre className="bg-gray-100 p-2 rounded text-black">
-                  {output.slice(0, currentStep + 1).join("\n")}
-                </pre>
+                <div className="bg-gray-100 p-2 rounded overflow-auto max-h-[200px]">
+                  {currentStep?.output.length > 0 ? (
+                    currentStep.output.map((line, index) => (
+                      <div key={index} className="font-mono">
+                        {line}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-500 italic">No output</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="text-sm text-gray-500">
+                Step {executionState.currentStep + 1} of{" "}
+                {executionState.totalSteps}
               </div>
             </div>
           </CardContent>
