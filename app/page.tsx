@@ -96,14 +96,7 @@ const CodeVisualizer: React.FC<CodeVisualizerProps> = ({
               value={code}
               onChange={handleEditorChange}
               theme="vs-dark"
-              options={{
-                minimap: { enabled: false },
-                fontSize: 14,
-                lineNumbers: "on",
-                roundedSelection: false,
-                scrollBeyondLastLine: false,
-                readOnly: isRunning,
-              }}
+              
             />
             <div className="mt-4 flex gap-2">
               <Button onClick={runCode} disabled={isRunning} className="w-24">
